@@ -101,7 +101,7 @@ def login_required(role=None):
 # ---------- HOME ----------
 @app.route("/")
 def home():
-    return render_template("menu.html")
+    return render_template("Index.html")
 
 
 # ---------- PROJECT REPORT FORM (MANAGER) ----------
@@ -298,3 +298,4 @@ def export_excel():
 # ---------- RUN APP ----------
 if __name__ == "__main__":
     app.run(debug=True)
+
