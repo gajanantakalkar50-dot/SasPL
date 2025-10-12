@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="mb-4 text-center">🧾 Manager Task Approval</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% if reports and reports|length > 0 %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>#</th>
+          <th>Engineer</th>
+          <th>Project</th>
+          <th>Date</th>
+          <th>Task</th>
+          <th>Status</th>
+          <th>%</th>
+          <th>Engineer Remark</th>
+          <th>Manager Remark</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <form method="POST" action="{{ url_for('approve_task') }}">
+            <td>{{ loop.index }}</td>
+            <td>{{ r["Engineer"] }}</td>
+            <td>{{ r["Project"] }}</td>
+            <td>{{ r["Date"] }}</td>
+            <td>{{ r["Task"] }}</td>
+            <td>{{ r["Status"] }}</td>
+            <td>{{ r["%"] }}</td>
+            <td>{{ r["Engineer Remark"] }}</td>
+            <td>
+              <input type="text" name="manager_remark" placeholder="Add remark..." 
+                     value="{{ r.get('Manager Remark', '') }}" 
+                     class="form-control form-control-sm">
+            </td>
+            <td class="text-center">
+              <input type="hidden" name="index" value="{{ r['real_index'] }}">
+              <div class="d-flex justify-content-center gap-2">
+                <button type="submit" name="action" value="Approved" class="btn btn-success btn-sm">✅ Approve</button>
+                <button type="submit" name="action" value="Rejected" class="btn btn-danger btn-sm">❌ Reject</button>
+              </div>
+            </td>
+          </form>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-center text-muted">No pending tasks for approval.</p>
+{% endif %}
+
+<script>
+  // Auto hide flash messages after 3 seconds
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(alert => {
+      const bsAlert = new bootstrap.Alert(alert);
+      bsAlert.close();
+    });
+  }, 3000);
+</script>
+
+{% endblock %}

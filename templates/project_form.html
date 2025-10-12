@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>🧱 Project Report Form</h2>
+
+<form method="POST" action="/project">
+  <div class="row mb-3">
+    <div class="col">
+      <label>Project Name</label>
+      <input type="text" name="project_name" class="form-control" required>
+    </div>
+    <div class="col">
+      <label>Engineer Name</label>
+      <input type="text" name="engineer_name" class="form-control" required>
+    </div>
+    <div class="col">
+      <label>Assigned Date</label>
+      <input type="date" name="assigned_date" class="form-control">
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col">
+      <label>Target Date</label>
+      <input type="date" name="target_date" class="form-control">
+    </div>
+    
+
+
+
+  <button type="submit" class="btn btn-primary"  action="/project" >Submit Project Report</button>
+</form>
+{% endblock %}

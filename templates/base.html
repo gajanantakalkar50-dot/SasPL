@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SAS Project Reports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { background-color: #f8fafc; }
+    nav {
+      background-color: #1d4ed8;
+      padding: 12px 20px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .nav-left a {
+      color: white;
+      font-weight: bold;
+      margin-right: 20px;
+      text-decoration: none;
+    }
+    .nav-left a:hover { text-decoration: underline; }
+    .nav-right {
+      color: #dbeafe;
+      font-size: 0.95em;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 30px;
+    }
+    .btn-primary { background-color: #1d4ed8; border: none; }
+    .btn-success { background-color: #16a34a; border: none; }
+    .btn-danger { background-color: #dc2626; border: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <span style="font-size:1.4em;font-weight:bold;margin-right:30px;">SAS Project Reports</span>
+    <a href="/">🏠 Home</a>
+    <a href="/project">📁 Add Project</a>
+    <a href="/daily">📝 Daily Checksheet</a>
+    <a href="/view">📊 View Reports</a>
+    {% if session.get('role') == 'manager' %}
+      <a href="/approve">✅ Approvals</a>
+    {% endif %}
+  </div>
+
+  <div class="nav-right">
+    {% if session.get('username') %}
+      👤 {{ session['username']|capitalize }} ({{ session['role'] }})
+      <a href="/logout" class="btn btn-sm btn-light text-dark ms-2">Logout</a>
+    {% else %}
+      <a href="/login" class="btn btn-sm btn-warning text-dark">Login</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category=='success' else ('info' if category=='info' else 'danger') }} mt-2">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

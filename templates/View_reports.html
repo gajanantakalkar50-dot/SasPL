@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">📊 View Project Reports</h2>
+
+<!-- 🔍 FILTER FORM -->
+<form method="POST" action="/view" class="row g-3 mb-4">
+  <div class="col-md-3">
+    <label class="form-label">Project Name</label>
+    <input type="text" name="project_name" class="form-control" placeholder="Enter Project Name">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Engineer Name</label>
+    <input type="text" name="engineer_name" class="form-control" placeholder="Enter Engineer Name">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">From Date</label>
+    <input type="date" name="start_date" class="form-control">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">To Date</label>
+    <input type="date" name="end_date" class="form-control">
+  </div>
+  <div class="col-md-2 d-flex align-items-end">
+    <button type="submit" class="btn btn-primary w-100">🔍 Search</button>
+  </div>
+</form>
+
+<!-- 📁 EXPORT BUTTON -->
+{% if reports and reports|length > 0 %}
+<form method="GET" action="/export_excel">
+  <button type="submit" class="btn btn-success mb-3">⬇️ Export to Excel</button>
+</form>
+
+<table class="table table-striped table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>Engineer</th>
+      <th>Project</th>
+      <th>Date</th>
+      <th>Task</th>
+      <th>Status</th>
+      <th>% Complete</th>
+      <th>Engineer Remark</th>
+      <th>Manager Remark</th>
+      <th>Approval</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in reports %}
+    <tr>
+      <td>{{ r.Engineer }}</td>
+      <td>{{ r.Project }}</td>
+      <td>{{ r.Date }}</td>
+      <td>{{ r.Task }}</td>
+      <td>{{ r.Status }}</td>
+      <td>{{ r["%"] }}</td>
+      <td>{{ r["Engineer Remark"] }}</td>
+      <td>{{ r["Manager Remark"] }}</td>
+      <td>{{ r.Approval }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-center text-muted">No reports found.</p>
+{% endif %}
+{% endblock %}

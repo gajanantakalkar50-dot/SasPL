@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">📋 Daily Work Report (Project)</h2>
+<form method="POST" action="/submit">
+
+    <div class="row mb-3">
+        <div class="col">
+            <label>Project Name</label>
+            <input type="text" name="project_name" class="form-control" required>
+        </div>
+        <div class="col">
+            <label>Engineer Name</label>
+            <input type="text" name="engineer_name" class="form-control" required>
+        </div>
+        <div class="col">
+            <label>Assigned Date</label>
+            <input type="date" name="assigned_date" class="form-control">
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label>Target Date</label>
+            <input type="date" name="target_date" class="form-control">
+        </div>
+        <div class="col">
+            <label>Completion Date</label>
+            <input type="date" name="completion_date" class="form-control">
+        </div>
+        <div class="col">
+            <label>Project Completion (%)</label>
+            <input type="number" name="completion_percent" class="form-control" min="0" max="100" placeholder="e.g. 80">
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Manager Remark</label>
+        <textarea name="manager_remark" class="form-control" rows="2"></textarea>
+    </div>
+
+    <h4 class="mt-4 mb-3">🧩 Task Details</h4>
+    <table id="taskTable" class="table table-bordered task-table">
+        <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Task Description</th>
+                <th>Status</th>
+                <th>% of Completion</th>
+                <th>Engineer Remark</th>
+                <th>Manager Remark</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><input type="date" name="task_date[]" class="form-control"></td>
+                <td><input type="text" name="task_desc[]" class="form-control"></td>
+                <td>
+                    <select name="task_status[]" class="form-select">
+                        <option>Completed</option>
+                        <option>In Progress</option>
+                        <option>Pending</option>
+                    </select>
+                </td>
+                <td><input type="number" name="task_percent[]" class="form-control" min="0" max="100" placeholder="%"></td>
+                <td><input type="text" name="remark_engineer[]" class="form-control"></td>
+                <td><input type="text" name="remark_manager[]" class="form-control"></td>
+                <td><button type="button" class="btn btn-danger removeRow">❌</button></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <button type="button" class="btn btn-success add-row">➕ Add Row</button>
+    <button type="submit" class="btn btn-primary mt-3">Submit Report</button>
+</form>
+
+<script>
+document.querySelector('.add-row').addEventListener('click', function() {
+    const table = document.querySelector('#taskTable tbody');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td><input type="date" name="task_date[]" class="form-control"></td>
+        <td><input type="text" name="task_desc[]" class="form-control"></td>
+        <td>
+            <select name="task_status[]" class="form-select">
+                <option>Completed</option>
+                <option>In Progress</option>
+                <option>Pending</option>
+            </select>
+        </td>
+        <td><input type="number" name="task_percent[]" class="form-control" min="0" max="100" placeholder="%"></td>
+        <td><input type="text" name="remark_engineer[]" class="form-control"></td>
+        <td><input type="text" name="remark_manager[]" class="form-control"></td>
+        <td><button type="button" class="btn btn-danger removeRow">❌</button></td>
+    `;
+    table.appendChild(newRow);
+});
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('removeRow')) e.target.closest('tr').remove();
+});
+</script>
+{% endblock %}

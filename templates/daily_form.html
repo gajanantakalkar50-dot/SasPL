@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4 text-center">📋 Engineer Daily Checksheet</h2>
+
+<form method="POST" action="/submit_daily">
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Project Name</label>
+      <select name="project_name" class="form-select" required>
+        <option value="">-- Select Project --</option>
+        {% for name in project_names %}
+          <option value="{{ name }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Engineer Name</label>
+      <input type="text" name="engineer_name" class="form-control" required>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Report Date</label>
+      <input type="date" name="report_date" class="form-control" required>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table id="taskTable" class="table table-bordered align-middle">
+      <thead class="table-light text-center">
+        <tr>
+          <th>Task Description</th>
+          <th>Status</th>
+          <th>% of Completion</th>
+          <th>Engineer Remark</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><input type="text" name="task_desc[]" class="form-control" required></td>
+          <td>
+            <select name="task_status[]" class="form-select" required>
+              <option>Completed</option>
+              <option>In Progress</option>
+              <option>Pending</option>
+            </select>
+          </td>
+          <td><input type="number" name="task_percent[]" class="form-control" min="0" max="100" placeholder="%" required></td>
+          <td><input type="text" name="remark_engineer[]" class="form-control"></td>
+          <td class="text-center">
+            <button type="button" class="btn btn-danger removeRow">❌</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-start gap-3 mt-3">
+    <button type="button" class="btn btn-success add-row">➕ Add Row</button>
+    <button type="submit" class="btn btn-primary">Submit Daily Report</button>
+  </div>
+</form>
+
+<script>
+document.querySelector('.add-row').addEventListener('click', function() {
+  const table = document.querySelector('#taskTable tbody');
+  const newRow = document.createElement('tr');
+  newRow.innerHTML = `
+    <td><input type="text" name="task_desc[]" class="form-control" required></td>
+    <td>
+      <select name="task_status[]" class="form-select" required>
+        <option>Completed</option>
+        <option>In Progress</option>
+        <option>Pending</option>
+      </select>
+    </td>
+    <td><input type="number" name="task_percent[]" class="form-control" min="0" max="100" placeholder="%" required></td>
+    <td><input type="text" name="remark_engineer[]" class="form-control"></td>
+    <td class="text-center">
+      <button type="button" class="btn btn-danger removeRow">❌</button>
+    </td>
+  `;
+  table.appendChild(newRow);
+});
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('removeRow')) e.target.closest('tr').remove();
+});
+</script>
+{% endblock %}

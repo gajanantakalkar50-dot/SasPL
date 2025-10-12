@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>📂 SAS Project Reporting Dashboard</h2>
+<div class="d-grid gap-3 mt-4">
+  <a href="/project" class="btn btn-primary btn-lg">🧱 Add Project Report</a>
+  <a href="/daily" class="btn btn-success btn-lg">📋 Engineer Daily Checksheet</a>
+  <a href="/view" class="btn btn-secondary btn-lg">📊 View All Reports</a>
+</div>
+{% endblock %}
