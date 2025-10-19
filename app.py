@@ -6,9 +6,24 @@ import io
 app = Flask(__name__)
 app.secret_key = "sas_secret_key"
 
-# ---------- PATHS ----------
-DATA_FOLDER = "data"
-os.makedirs(DATA_FOLDER, exist_ok=True)
+# ---------- PATHS (Render Safe) ----------
+if os.environ.get("RENDER"):
+    # Render has read-only filesystem for repo; use /tmp for writable storage
+    DATA_FOLDER = "/tmp/data"
+    os.makedirs(DATA_FOLDER, exist_ok=True)
+
+    # Copy Excel files from repo (read-only) to writable /tmp
+    if not os.path.exists(os.path.join(DATA_FOLDER, "users.xlsx")):
+        os.system("cp data/users.xlsx /tmp/data/users.xlsx")
+
+    if not os.path.exists(os.path.join(DATA_FOLDER, "project_reports.xlsx")):
+        os.system("cp data/project_reports.xlsx /tmp/data/project_reports.xlsx")
+
+else:
+    # Local run
+    DATA_FOLDER = "data"
+    os.makedirs(DATA_FOLDER, exist_ok=True)
+
 USERS_FILE = os.path.join(DATA_FOLDER, "users.xlsx")
 EXCEL_FILE = os.path.join(DATA_FOLDER, "project_reports.xlsx")
 
@@ -127,7 +142,7 @@ def project_form():
         else:
             df_all = new_entry
 
-        with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="overlay") as writer:
+        with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace") as writer:
             df_all.to_excel(writer, sheet_name="Projects", index=False)
 
         flash("✅ Project report added successfully!", "success")
@@ -179,7 +194,7 @@ def submit_daily():
     else:
         df_all = df_new
 
-    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="overlay") as writer:
+    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace") as writer:
         df_all.to_excel(writer, sheet_name="DailyChecks", index=False)
 
     flash("✅ Report submitted for manager approval.", "success")
@@ -298,5 +313,3 @@ def export_excel():
 # ---------- RUN APP ----------
 if __name__ == "__main__":
     app.run(debug=True)
-
-
