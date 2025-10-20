@@ -11,13 +11,12 @@ if os.environ.get("RENDER"):
     DATA_FOLDER = "/tmp/data"
     os.makedirs(DATA_FOLDER, exist_ok=True)
 
-    # Copy Excel files to writable /tmp folder
+    # Copy Excel files from repo (read-only) to writable /tmp
     if not os.path.exists(os.path.join(DATA_FOLDER, "users.xlsx")):
-        os.system("cp data/users.xlsx /tmp/data/users.xlsx")
+        os.system("cp data/users.xlsx /tmp/data/users.xlsx || true")
 
     if not os.path.exists(os.path.join(DATA_FOLDER, "project_reports.xlsx")):
-        os.system("cp data/project_reports.xlsx /tmp/data/project_reports.xlsx")
-
+        os.system("cp data/project_reports.xlsx /tmp/data/project_reports.xlsx || true")
 else:
     DATA_FOLDER = "data"
     os.makedirs(DATA_FOLDER, exist_ok=True)
@@ -25,21 +24,51 @@ else:
 USERS_FILE = os.path.join(DATA_FOLDER, "users.xlsx")
 EXCEL_FILE = os.path.join(DATA_FOLDER, "project_reports.xlsx")
 
+# ---------- Ensure Excel File Exists ----------
+if not os.path.exists(EXCEL_FILE):
+    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+        pd.DataFrame(columns=[
+            "Engineer", "Project", "Date", "Task", "Status", "%",
+            "Engineer Remark", "Manager Remark", "Approval"
+        ]).to_excel(writer, sheet_name="DailyChecks", index=False)
+        pd.DataFrame(columns=[
+            "Project Name", "Engineer Name", "Assigned Date", "Target Date"
+        ]).to_excel(writer, sheet_name="Projects", index=False)
+
 
 # ---------- HELPER FUNCTIONS ----------
 def read_excel_safe(path, sheet):
     """Safely read an Excel sheet; return empty DataFrame if missing."""
+    if not os.path.exists(path):
+        print(f"⚠️ File {path} not found.")
+        return pd.DataFrame()
     try:
         return pd.read_excel(path, sheet_name=sheet)
     except Exception as e:
-        print(f"⚠️ Error reading {sheet}: {e}")
+        print(f"⚠️ Error reading sheet '{sheet}': {e}")
         return pd.DataFrame()
 
 
-def save_excel(df, path, sheet):
-    """Save a DataFrame to a specific sheet (replace)."""
-    with pd.ExcelWriter(path, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
+def save_sheet(df, path, sheet):
+    """Replace a specific sheet safely using openpyxl."""
+    from openpyxl import load_workbook
+
+    if not os.path.exists(path):
+        df.to_excel(path, sheet_name=sheet, index=False)
+        return
+
+    try:
+        book = load_workbook(path)
+        if sheet in book.sheetnames:
+            del book[sheet]
+        writer = pd.ExcelWriter(path, engine="openpyxl")
+        writer.book = book
+        writer.sheets = {ws.title: ws for ws in book.worksheets}
         df.to_excel(writer, sheet_name=sheet, index=False)
+        writer.close()
+    except Exception as e:
+        print(f"⚠️ Error writing to Excel: {e}")
+        df.to_excel(path, sheet_name=sheet, index=False)
 
 
 # ---------- AUTH ----------
@@ -134,15 +163,9 @@ def project_form():
             "Target Date": target_date
         }])
 
-        if os.path.exists(EXCEL_FILE):
-            df_old = read_excel_safe(EXCEL_FILE, "Projects")
-            df_all = pd.concat([df_old, new_entry], ignore_index=True)
-        else:
-            df_all = new_entry
-
-        # ✅ FIXED HERE
-        with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
-            df_all.to_excel(writer, sheet_name="Projects", index=False)
+        df_old = read_excel_safe(EXCEL_FILE, "Projects")
+        df_all = pd.concat([df_old, new_entry], ignore_index=True)
+        save_sheet(df_all, EXCEL_FILE, "Projects")
 
         flash("✅ Project report added successfully!", "success")
         return redirect("/project")
@@ -186,16 +209,9 @@ def submit_daily():
         })
 
     df_new = pd.DataFrame(rows)
-
-    if os.path.exists(EXCEL_FILE):
-        df_old = read_excel_safe(EXCEL_FILE, "DailyChecks")
-        df_all = pd.concat([df_old, df_new], ignore_index=True)
-    else:
-        df_all = df_new
-
-    # ✅ FIXED HERE
-    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
-        df_all.to_excel(writer, sheet_name="DailyChecks", index=False)
+    df_old = read_excel_safe(EXCEL_FILE, "DailyChecks")
+    df_all = pd.concat([df_old, df_new], ignore_index=True)
+    save_sheet(df_all, EXCEL_FILE, "DailyChecks")
 
     flash("✅ Report submitted for manager approval.", "success")
     return redirect("/daily")
@@ -212,16 +228,13 @@ def approve_page():
         return render_template("approve_tasks.html", reports=[])
 
     if "Approval" not in df.columns:
-        df["Approval"] = ""
+        df["Approval"] = "Pending"
 
     pending = df[df["Approval"].astype(str).str.lower().isin(["pending", ""])]
-    if pending.empty:
-        flash("✅ All tasks have been approved or rejected.", "info")
-
     pending = pending.copy()
     pending["real_index"] = pending.index
-
     reports = pending.to_dict(orient="records")
+
     return render_template("approve_tasks.html", reports=reports)
 
 
@@ -232,14 +245,10 @@ def approve_task():
     remark = request.form.get("manager_remark", "")
     index_str = request.form.get("index", "")
 
-    if not index_str.strip():
-        flash("❌ Task index missing!", "danger")
-        return redirect(url_for("approve_page"))
-
     try:
         idx = int(index_str)
     except ValueError:
-        flash("❌ Invalid index format!", "danger")
+        flash("❌ Invalid task index!", "danger")
         return redirect(url_for("approve_page"))
 
     df = read_excel_safe(EXCEL_FILE, "DailyChecks")
@@ -250,10 +259,7 @@ def approve_task():
 
     df.loc[idx, "Approval"] = action
     df.loc[idx, "Manager Remark"] = remark
-
-    # ✅ FIXED HERE
-    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name="DailyChecks", index=False)
+    save_sheet(df, EXCEL_FILE, "DailyChecks")
 
     flash(f"✅ Task #{idx + 1} marked as {action}.", "success")
     return redirect(url_for("approve_page"))
@@ -264,11 +270,13 @@ def approve_task():
 @login_required()
 def view_reports():
     df = read_excel_safe(EXCEL_FILE, "DailyChecks")
-    if df.empty:
+
+    if df.empty or len(df.columns) == 0:
+        flash("⚠️ No data available to display.", "info")
         return render_template("view_reports.html", reports=[])
 
     if session.get("role") == "engineer":
-        df = df[df["Engineer"] == session.get("username")]
+        df = df[df["Engineer"].astype(str) == session.get("username")]
 
     if request.method == "POST":
         project = request.form.get("project_name", "").strip()
@@ -277,9 +285,9 @@ def view_reports():
         end_date = request.form.get("end_date")
 
         if project:
-            df = df[df["Project"].str.contains(project, case=False, na=False)]
+            df = df[df["Project"].astype(str).str.contains(project, case=False, na=False)]
         if engineer:
-            df = df[df["Engineer"].str.contains(engineer, case=False, na=False)]
+            df = df[df["Engineer"].astype(str).str.contains(engineer, case=False, na=False)]
         if start_date:
             df = df[df["Date"] >= start_date]
         if end_date:
@@ -299,4 +307,13 @@ def export_excel():
 
     df = pd.DataFrame(session["filtered_data"])
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Reports")
+
+    output.seek(0)
+    return send_file(
+        output,
+        download_name="Project_Reports.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
