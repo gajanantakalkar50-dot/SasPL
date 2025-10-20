@@ -8,15 +8,14 @@ app.secret_key = "sas_secret_key"
 
 # ---------- PATHS (Render Safe) ----------
 if os.environ.get("RENDER"):
-    # Render has read-only repo; use /tmp for writable storage
     DATA_FOLDER = "/tmp/data"
     os.makedirs(DATA_FOLDER, exist_ok=True)
 
-    # Copy Excel files from repo to /tmp for write access
-    if not os.path.exists(os.path.join(DATA_FOLDER, "users.xlsx")) and os.path.exists("data/users.xlsx"):
+    # Copy Excel files to writable /tmp folder
+    if not os.path.exists(os.path.join(DATA_FOLDER, "users.xlsx")):
         os.system("cp data/users.xlsx /tmp/data/users.xlsx")
 
-    if not os.path.exists(os.path.join(DATA_FOLDER, "project_reports.xlsx")) and os.path.exists("data/project_reports.xlsx"):
+    if not os.path.exists(os.path.join(DATA_FOLDER, "project_reports.xlsx")):
         os.system("cp data/project_reports.xlsx /tmp/data/project_reports.xlsx")
 
 else:
@@ -31,24 +30,15 @@ EXCEL_FILE = os.path.join(DATA_FOLDER, "project_reports.xlsx")
 def read_excel_safe(path, sheet):
     """Safely read an Excel sheet; return empty DataFrame if missing."""
     try:
-        return pd.read_excel(path, sheet_name=sheet, engine="openpyxl")
+        return pd.read_excel(path, sheet_name=sheet)
     except Exception as e:
         print(f"⚠️ Error reading {sheet}: {e}")
         return pd.DataFrame()
 
 
 def save_excel(df, path, sheet):
-    """Save a DataFrame to a specific sheet (replace or create)."""
-    from openpyxl import load_workbook
-
-    if not os.path.exists(path):
-        # Create new Excel file if missing
-        with pd.ExcelWriter(path, engine="openpyxl") as writer:
-            df.to_excel(writer, sheet_name=sheet, index=False)
-        return
-
-    # Append or replace sheet safely
-    with pd.ExcelWriter(path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+    """Save a DataFrame to a specific sheet (replace)."""
+    with pd.ExcelWriter(path, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name=sheet, index=False)
 
 
@@ -63,7 +53,7 @@ def login():
             flash("❌ 'users.xlsx' file not found in /data folder!", "danger")
             return redirect("/login")
 
-        users = pd.read_excel(USERS_FILE, engine="openpyxl")
+        users = pd.read_excel(USERS_FILE)
         users.columns = [c.lower().strip() for c in users.columns]
 
         if not {"username", "password", "role"}.issubset(users.columns):
@@ -150,7 +140,9 @@ def project_form():
         else:
             df_all = new_entry
 
-        save_excel(df_all, EXCEL_FILE, "Projects")
+        # ✅ FIXED HERE
+        with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
+            df_all.to_excel(writer, sheet_name="Projects", index=False)
 
         flash("✅ Project report added successfully!", "success")
         return redirect("/project")
@@ -201,7 +193,9 @@ def submit_daily():
     else:
         df_all = df_new
 
-    save_excel(df_all, EXCEL_FILE, "DailyChecks")
+    # ✅ FIXED HERE
+    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
+        df_all.to_excel(writer, sheet_name="DailyChecks", index=False)
 
     flash("✅ Report submitted for manager approval.", "success")
     return redirect("/daily")
@@ -257,7 +251,9 @@ def approve_task():
     df.loc[idx, "Approval"] = action
     df.loc[idx, "Manager Remark"] = remark
 
-    save_excel(df, EXCEL_FILE, "DailyChecks")
+    # ✅ FIXED HERE
+    with pd.ExcelWriter(EXCEL_FILE, mode="a", if_sheet_exists="replace", engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="DailyChecks", index=False)
 
     flash(f"✅ Task #{idx + 1} marked as {action}.", "success")
     return redirect(url_for("approve_page"))
@@ -303,18 +299,4 @@ def export_excel():
 
     df = pd.DataFrame(session["filtered_data"])
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Reports")
-
-    output.seek(0)
-    return send_file(
-        output,
-        download_name="Project_Reports.xlsx",
-        as_attachment=True,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-
-# ---------- RUN APP ----------
-if __name__ == "__main__":
-    app.run(debug=True)
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer
